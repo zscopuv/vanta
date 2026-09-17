@@ -1,41 +1,37 @@
 ![vanta](https://i.ibb.co/q3HFNJV1/image.jpg)
-A lightweight Python toolkit for beautiful, structured CLI output.
 
----
+# Vanta
+A lightweight Python toolkit for clean, structured CLI output.
 
-Vanta provides a simple `Console` class for building clean command-line interfaces with:
+Vanta provides a simple `Console` class with:
 
-- Colored log messages
+- Colored messages
 - Timestamps
+- Log levels
+- stdout/stderr separation
+- Typed input and confirmations
+- Exception handling
 - Cross-platform terminal clearing
-- Typed user input
-- Yes/no confirmation prompts
-- Optional color output
-- Optional automatic screen clearing
+- Automatic color detection
+- Interactive and non-interactive support
 
 ## Installation
-
-### From source
-
-Clone the repository:
 
 ```bash
 pip install vanta
 ````
 
-Then in your IDE:
-
-```python
-from vanta import Console
-```
-
-## Quick Start
+Then:
 
 ```python
 import vanta
 
 console = vanta.Console()
+```
 
+## Quick Start
+
+```python
 console.info("Hello, world!")
 console.success("Operation completed.")
 console.warning("Something might be wrong.")
@@ -43,9 +39,9 @@ console.error("Something went wrong.")
 console.notice("Please take note.")
 ```
 
-Example output:
+Output:
 
-```js
+```text
 [16:42:10] [INFO] Hello, world!
 [16:42:10] [SUCCESS] Operation completed.
 [16:42:10] [WARNING] Something might be wrong.
@@ -53,161 +49,100 @@ Example output:
 [16:42:10] [NOTICE] Please take note.
 ```
 
-When colors are enabled, each message type is displayed with its own color.
-
----
+Colors are automatically enabled when supported.
 
 ## Console
-
-Create a console instance with:
 
 ```python
 console = vanta.Console()
 ```
 
-By default, Vanta:
-
-* Enables colors
-* Clears the terminal when the console is created
-
-Both behaviors can be configured:
+Common options:
 
 ```python
 console = vanta.Console(
     color=False,
-    cls=False,
+    cls=True,
+    level="info",
 )
 ```
 
-### Parameters
-
-| Parameter | Type   | Default | Description                         |
-| --------- | ------ | ------: | ----------------------------------- |
-| `color`   | `bool` |  `True` | Enable or disable colored output    |
-| `cls`     | `bool` |  `True` | Clear the terminal when initialized |
-
----
+| Option        | Default      | Description                            |
+| ------------- | ------------ | -------------------------------------- |
+| `color`       | `None`       | Enable, disable, or auto-detect colors |
+| `cls`         | `False`      | Clear the terminal on startup          |
+| `interactive` | `None`       | Enable or disable interactive input    |
+| `level`       | `"info"`     | Minimum log level                      |
+| `stdout`      | `sys.stdout` | Normal output stream                   |
+| `stderr`      | `sys.stderr` | Warning/error stream                   |
 
 ## Logging
 
-Vanta provides five message variants.
-
-### Info
+Vanta supports seven message levels:
 
 ```python
-console.info("This is an informational message.")
-```
-
-### Success
-
-```python
-console.success("Everything went well!")
-```
-
-### Warning
-
-```python
-console.warning("Be careful.")
-```
-
-### Error
-
-```python
+console.debug("Debug information.")
+console.info("Information.")
+console.notice("Take note.")
+console.success("Operation completed.")
+console.warning("Something may be wrong.")
 console.error("Something went wrong.")
+console.critical("Critical failure.")
 ```
 
-### Notice
+> Warnings, errors, and critical messages are written to `stderr`.
+
+### Log Levels
+
+Messages can be filtered:
 
 ```python
-console.notice("Please take note of this.")
+console = vanta.Console(level="warning")
 ```
 
-All messages include a timestamp.
+Only `warning`, `error`, and `critical` messages will be displayed.
 
----
+Available levels:
+
+```text
+debug
+info
+notice
+success
+warning
+error
+critical
+```
 
 ## Raw Output
 
-Use `raw()` when you want to output a message without a variant prefix.
+Use `raw()` for output without a message variant:
 
 ```python
 console.raw("Hello!")
 ```
 
-By default, the timestamp is still displayed.
-
-To remove the timestamp:
+By default, it includes a timestamp.
 
 ```python
 console.raw("Hello!", timestamp=False)
 ```
 
-Output:
-
 ```text
 Hello!
 ```
 
----
-
-## Clearing the Terminal
-
-The terminal can be cleared manually:
-
-```python
-console.clear()
-```
-
-Vanta automatically uses the appropriate command for the operating system:
-
-* Windows: `cmd /c cls`
-* Linux/macOS: `clear`
-
----
-
 ## User Input
 
-The `ask()` method allows you to request and convert user input.
+`ask()` converts input using any callable:
 
 ```python
-name = console.ask("What is your name:")
+name = console.ask("Name:")
+age = console.ask("Age:", int)
+price = console.ask("Price:", float)
 ```
 
-Since the default output type is `str`, this returns the entered text.
-
-### Integers
-
-```python
-age = console.ask("How old are you:", int)
-```
-
-If the user enters:
-
-```text
-18
-```
-
-`age` will be an `int`.
-
-Invalid input is automatically rejected:
-
-```text
-How old are you: abc
-[16:45:21] [ERROR] Invalid. Please use int.
-How old are you:
-```
-
-### Floating-point numbers
-
-```python
-price = console.ask("Enter the price:", float)
-```
-
-### Custom converters
-
-`ask()` accepts any callable that takes a `str` and returns the desired type.
-
-For example:
+Custom validation works too:
 
 ```python
 def parse_name(value: str) -> str:
@@ -222,210 +157,167 @@ def parse_name(value: str) -> str:
 name = console.ask("Name:", parse_name)
 ```
 
-### Custom error messages
-
-You can provide your own error message:
+Retries can be configured:
 
 ```python
 age = console.ask(
     "Age:",
     int,
-    "Please enter a valid number."
+    retry=3,
 )
 ```
 
----
+Use `retry=None` for unlimited retries.
 
-## Confirmation Prompts
+## Confirmation
 
-Use `confirm()` for yes/no questions:
+Use `confirm()` for yes/no prompts:
 
 ```python
 if console.confirm("Continue?"):
     print("Continuing...")
 ```
 
-The default behavior is:
+The default is `True`:
 
 ```text
 Continue? [Y/n]
 ```
 
-Pressing **Enter** accepts the default (`True`).
-
-### Default to No
-
-Set `default=False`:
+To default to `False`:
 
 ```python
-if console.confirm("Delete this file?", default=False):
-    print("Deleting...")
+console.confirm(
+    "Delete this file?",
+    default=False,
+)
 ```
 
-The prompt becomes:
-
-```text
-Delete this file? [y/N]
-```
-
-Pressing **Enter** now returns `False`.
-
-### Accepted Answers
-
-Yes:
-
-```text
-y
-1
-ok
-ye
-yes
-yep
-yy
-```
-
-No:
-
-```text
-n
-0
-no
-nah
-nn
-```
-
-Input is case-insensitive.
-
-### Custom Error Messages
+Custom aliases are supported:
 
 ```python
 console.confirm(
     "Continue?",
-    error_message="Please answer with yes or no."
+    alias_yes={"sure"},
+    alias_no={"cancel"},
 )
 ```
 
----
+## Exceptions
 
-## Disabling Colors
+Display exceptions easily:
 
-Colors can be disabled when creating the console:
+```python
+try:
+    1 / 0
+except Exception as exc:
+    console.exception(exc)
+```
+
+For a full traceback:
+
+```python
+console.exception(
+    exc,
+    traceback=True,
+)
+```
+
+## Terminal
+
+Clear the terminal:
+
+```python
+console.clear()
+```
+
+Vanta handles Windows, Linux, and macOS automatically.
+
+The detected terminal width is available through:
+
+```python
+console.width
+```
+
+## Colors
+
+Colors are automatically detected.
+
+Disable them explicitly:
 
 ```python
 console = vanta.Console(color=False)
 ```
 
-Output will then use plain text:
+Vanta also respects:
 
-```text
-[16:45:21] [INFO] Hello!
+```bash
+NO_COLOR=1 vanta
 ```
 
-This can be useful when output is being redirected to a file or another program.
+and:
 
----
+```bash
+FORCE_COLOR=1 vanta
+```
 
-## API Reference
+## Non-Interactive Mode
+
+Vanta can be used without interactive input:
+
+```python
+console = vanta.Console(
+    interactive=False,
+)
+```
+
+This is useful for scripts, CI, and automated environments.
+
+## API
 
 ### `Console`
 
 ```python
 Console(
-    color: bool = True,
-    cls: bool = True
+    color: bool | None = None,
+    cls: bool = False,
+    *,
+    stream=None,
+    stdout=None,
+    stderr=None,
+    input_fn=input,
+    interactive: bool | None = None,
+    level: str = "info",
 )
 ```
 
-### `clear()`
+### Messages
 
 ```python
-console.clear() -> None
+console.debug(message)
+console.info(message)
+console.notice(message)
+console.success(message)
+console.warning(message)
+console.error(message)
+console.critical(message)
 ```
 
-Clears the terminal.
-
-### `info()`
+### Other
 
 ```python
-console.info(message: str) -> None
+console.raw(message, timestamp=True)
+console.clear()
+console.exception(exc, traceback=False, prefix=None)
+console.ask(...)
+console.confirm(...)
 ```
-
-Prints an informational message.
-
-### `success()`
-
-```python
-console.success(message: str) -> None
-```
-
-Prints a success message.
-
-### `warning()`
-
-```python
-console.warning(message: str) -> None
-```
-
-Prints a warning message.
-
-### `error()`
-
-```python
-console.error(message: str) -> None
-```
-
-Prints an error message.
-
-### `notice()`
-
-```python
-console.notice(message: str) -> None
-```
-
-Prints a notice message.
-
-### `raw()`
-
-```python
-console.raw(
-    message: str,
-    timestamp: bool = True
-) -> None
-```
-
-Prints unclassified output.
-
-### `ask()`
-
-```python
-console.ask(
-    question: str,
-    output: Callable[[str], T] = str,
-    error_message: str | None = None
-) -> T
-```
-
-Prompts the user for input and converts it using `output`.
-
-### `confirm()`
-
-```python
-console.confirm(
-    question: str,
-    error_message: str | None = None,
-    default: bool = True
-) -> bool
-```
-
-Prompts the user for a yes/no response.
-
----
 
 ## Version
 
-Current version: **0.1.1**
+> **0.2.0 - Console & CLI Improvements**
 
-Vanta is currently in early development. The API may change between releases before reaching a stable `1.0.0` release.
+Vanta is currently in early development. The API may change before `1.0.0`.
 
 ## License
 
