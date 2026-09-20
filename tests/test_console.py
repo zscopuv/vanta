@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from vanta.app import Console, DEFAULT_NO, DEFAULT_YES
+from vanta.console import Console, DEFAULT_NO, DEFAULT_YES
 
 
 # ---------------------------------------------------------------------------
@@ -1010,12 +1010,12 @@ def test_clear_uses_clear_command_when_available(
     )
 
     monkeypatch.setattr(
-        "vanta.app.os.name",
+        "vanta.console.os.name",
         "posix",
     )
 
     monkeypatch.setattr(
-        "vanta.app.shutil.which",
+        "vanta.console.shutil.which",
         lambda command: (
             "/usr/bin/clear"
             if command == "clear"
@@ -1026,7 +1026,7 @@ def test_clear_uses_clear_command_when_available(
     run = Mock()
 
     monkeypatch.setattr(
-        "vanta.app.subprocess.run",
+        "vanta.console.subprocess.run",
         run,
     )
 
@@ -1044,12 +1044,12 @@ def test_clear_does_not_fail_when_command_is_missing(
     )
 
     monkeypatch.setattr(
-        "vanta.app.os.name",
+        "vanta.console.os.name",
         "posix",
     )
 
     monkeypatch.setattr(
-        "vanta.app.shutil.which",
+        "vanta.console.shutil.which",
         lambda _: None,
     )
 
@@ -1065,17 +1065,17 @@ def test_clear_ignores_subprocess_errors(
     )
 
     monkeypatch.setattr(
-        "vanta.app.os.name",
+        "vanta.console.os.name",
         "posix",
     )
 
     monkeypatch.setattr(
-        "vanta.app.shutil.which",
+        "vanta.console.shutil.which",
         lambda _: "/usr/bin/clear",
     )
 
     monkeypatch.setattr(
-        "vanta.app.subprocess.run",
+        "vanta.console.subprocess.run",
         Mock(side_effect=OSError),
     )
 
