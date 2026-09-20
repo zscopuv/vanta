@@ -12,6 +12,8 @@ A lightweight Python toolkit for clean, structured CLI output.
 - Automatic color detection
 - Interactive / non-interactive mode
 - Simple terminal tables
+- Elapsed time measurement
+- Timer pause and resume
 
 ## Installation
 
@@ -71,11 +73,10 @@ Vanta provides 7 log levels:
 | `error`    |    50 | stderr | An operation failed                |
 | `critical` |    60 | stderr | Serious/critical failure           |
 
----
+> Lower levels are more verbose.
 
-> **Lower levels are more verbose.**
-
-> `Console.debug()` messages **won't** be shown if `level="info"` set!
+- *`level="info"`* suppresses `debug` messages
+- *`level="warning"`* only emits `warning`, `error`, and `critical`
 
 ## Examples
 
@@ -91,8 +92,6 @@ console.error("Error")
 console.critical("Critical")
 ```
 
----
-
 **Set a minimum log level:**
 
 ```python
@@ -100,8 +99,6 @@ console = vanta.Console(level="warning")
 ```
 
 For example, `level="warning"` only emits `warning`, `error`, and `critical` messages.
-
----
 
 ### Input
 
@@ -115,8 +112,6 @@ if console.confirm("Continue?"):
 
 `ask()` supports custom converters and retries.
 
----
-
 ### Exceptions
 
 ```python
@@ -127,8 +122,6 @@ except Exception as exc:
 ```
 
 Use `traceback=True` for the full traceback.
-
----
 
 ### Terminal
 
@@ -183,8 +176,6 @@ table = vanta.Table(
 
 `align` can be `left`, `center`, or `right`.
 
----
-
 ## Examples
 
 ```python
@@ -195,8 +186,6 @@ table.add_row("Bob", 21, "Offline")
 
 table.print()
 ```
-
----
 
 Output:
 
@@ -219,9 +208,90 @@ table.render()      # Returns the table as a string
 table.print()       # Renders and prints the table
 ```
 
+# Timer
+```python
+timer = vanta.Timer(
+    autostart=False,  # Don't start the timer immediately
+)
+```
+
+## Options
+
+| Option      | Description                 |
+| ----------- | --------------------------- |
+| `autostart` | Start the timer immediately |
+
+## Examples
+
+### Basic
+
+```python
+import time
+import vanta
+
+timer = vanta.Timer(autostart=True)
+
+time.sleep(1.5)
+
+timer.stop()
+
+print(timer.elapsed)
+print(timer.ms)
+```
+
+### Pause
+
+```python
+from time import sleep
+
+from vanta import Timer
+
+
+timer = Timer(autostart=True)
+
+sleep(1.525)
+
+timer.stop()  # Optional, but recommended
+
+print(timer.elapsed)  # Around 1.525 sec
+print(timer.ms)       # Around 1525 ms
+```
+
+Paused time is not included in the elapsed time.
+
+### Context Manager
+
+```python
+with vanta.Timer() as timer:
+    time.sleep(2)
+
+print(timer.elapsed)
+```
+
+## Properties
+
+| Property     | Description                         |
+| ------------ | ----------------------------------- |
+| `elapsed`    | Elapsed active time in seconds      |
+| `ms`         | Elapsed active time in milliseconds |
+| `running`    | Whether the timer is running        |
+| `paused`     | Whether the timer is paused         |
+| `start_time` | Time when the timer was started     |
+| `stop_time`  | Time when the timer was stopped     |
+
+## Methods
+
+```python
+timer.start()
+timer.stop()
+timer.pause()
+timer.unpause()
+timer.reset() # Clears the timer and returns it to its initial state. Does not restart.
+```
+
 # Version
 
-**0.3.0**
+**0.3.1**
 
 Vanta is currently in early development and the API may change before `1.0.0`.
 
