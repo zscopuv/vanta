@@ -1,19 +1,17 @@
 ![vanta](https://i.ibb.co/q3HFNJV1/image.jpg)
 
 # Vanta
+
 A lightweight Python toolkit for clean, structured CLI output.
 
-Vanta provides a simple `Console` class with:
-
 - Colored messages
-- Timestamps
-- Log levels
-- stdout/stderr separation
-- Typed input and confirmations
+- Timestamps & log levels
+- Input & confirmations
 - Exception handling
-- Cross-platform terminal clearing
+- Terminal utilities
 - Automatic color detection
-- Interactive and non-interactive support
+- Interactive / non-interactive mode
+- Simple terminal tables
 
 ## Installation
 
@@ -21,191 +19,105 @@ Vanta provides a simple `Console` class with:
 pip install vanta
 ````
 
-Then:
+## Quick Start
 
 ```python
 import vanta
 
 console = vanta.Console()
+
+console.info("Hello, World!")
+
+table = vanta.Table("Name", "Age", "Status")
+table.add_row("Alice", 17, "Online")
+table.print()
 ```
 
-## Quick Start
-
-```python
-console.info("Hello, world!")
-console.success("Operation completed.")
-console.warning("Something might be wrong.")
-console.error("Something went wrong.")
-console.notice("Please take note.")
-```
-
-Output:
-
-```text
-[16:42:10] [INFO] Hello, world!
-[16:42:10] [SUCCESS] Operation completed.
-[16:42:10] [WARNING] Something might be wrong.
-[16:42:10] [ERROR] Something went wrong.
-[16:42:10] [NOTICE] Please take note.
-```
-
-Colors are automatically enabled when supported.
-
-## Console
-
-```python
-console = vanta.Console()
-```
-
-Common options:
-
+# Console
 ```python
 console = vanta.Console(
-    color=False,
-    cls=True,
-    level="info",
+    color=None,        # Auto-detect colors
+    cls=False,         # Don't clear the terminal on startup
+    *,
+    stdout=None,       # Output stream for normal messages
+    stderr=None,       # Output stream for warnings/errors
+    interactive=None,  # Auto-detect interactive mode
+    level="info",      # Minimum log level
 )
 ```
 
-| Option        | Default      | Description                            |
-| ------------- | ------------ | -------------------------------------- |
-| `color`       | `None`       | Enable, disable, or auto-detect colors |
-| `cls`         | `False`      | Clear the terminal on startup          |
-| `interactive` | `None`       | Enable or disable interactive input    |
-| `level`       | `"info"`     | Minimum log level                      |
-| `stdout`      | `sys.stdout` | Normal output stream                   |
-| `stderr`      | `sys.stderr` | Warning/error stream                   |
+## Options
 
-## Logging
+| Option        | Description                       |
+| ------------- | --------------------------------- |
+| `color`       | Enable/disable colors             |
+| `cls`         | Clear terminal on startup         |
+| `stdout`      | Output stream for normal messages |
+| `stderr`      | Output stream for warnings/errors |
+| `interactive` | Enable/disable input              |
+| `level`       | Minimum log level                 |
 
-Vanta supports seven message levels:
+## Log Levels
+
+Vanta provides 7 log levels:
+
+| Level      | Value | Stream | Purpose                            |
+| ---------- | ----: | ------ | ---------------------------------- |
+| `debug`    |    10 | stdout | Detailed debugging information     |
+| `info`     |    20 | stdout | General information                |
+| `notice`   |    25 | stdout | Important information worth noting |
+| `success`  |    30 | stdout | Successful operation               |
+| `warning`  |    40 | stderr | Something may be wrong             |
+| `error`    |    50 | stderr | An operation failed                |
+| `critical` |    60 | stderr | Serious/critical failure           |
+
+---
+
+> **Lower levels are more verbose.**
+
+> `Console.debug()` messages **won't** be shown if `level="info"` set!
+
+## Examples
+
+### Logging
 
 ```python
-console.debug("Debug information.")
-console.info("Information.")
-console.notice("Take note.")
-console.success("Operation completed.")
-console.warning("Something may be wrong.")
-console.error("Something went wrong.")
-console.critical("Critical failure.")
+console.debug("Debug")
+console.info("Info")
+console.notice("Notice")
+console.success("Success")
+console.warning("Warning")
+console.error("Error")
+console.critical("Critical")
 ```
 
-> Warnings, errors, and critical messages are written to `stderr`.
+---
 
-### Log Levels
-
-Messages can be filtered:
+**Set a minimum log level:**
 
 ```python
 console = vanta.Console(level="warning")
 ```
 
-Only `warning`, `error`, and `critical` messages will be displayed.
+For example, `level="warning"` only emits `warning`, `error`, and `critical` messages.
 
-Available levels:
+---
 
-```text
-debug
-info
-notice
-success
-warning
-error
-critical
-```
-
-## Raw Output
-
-Use `raw()` for output without a message variant:
-
-```python
-console.raw("Hello!")
-```
-
-By default, it includes a timestamp.
-
-```python
-console.raw("Hello!", timestamp=False)
-```
-
-```text
-Hello!
-```
-
-## User Input
-
-`ask()` converts input using any callable:
+### Input
 
 ```python
 name = console.ask("Name:")
 age = console.ask("Age:", int)
-price = console.ask("Price:", float)
-```
 
-Custom validation works too:
-
-```python
-def parse_name(value: str) -> str:
-    value = value.strip()
-
-    if not value:
-        raise ValueError
-
-    return value.title()
-
-
-name = console.ask("Name:", parse_name)
-```
-
-Retries can be configured:
-
-```python
-age = console.ask(
-    "Age:",
-    int,
-    retry=3,
-)
-```
-
-Use `retry=None` for unlimited retries.
-
-## Confirmation
-
-Use `confirm()` for yes/no prompts:
-
-```python
 if console.confirm("Continue?"):
-    print("Continuing...")
+    print("Continuing!")
 ```
 
-The default is `True`:
+`ask()` supports custom converters and retries.
 
-```text
-Continue? [Y/n]
-```
+---
 
-To default to `False`:
-
-```python
-console.confirm(
-    "Delete this file?",
-    default=False,
-)
-```
-
-Custom aliases are supported:
-
-```python
-console.confirm(
-    "Continue?",
-    alias_yes={"sure"},
-    alias_no={"cancel"},
-)
-```
-
-## Exceptions
-
-Display exceptions easily:
+### Exceptions
 
 ```python
 try:
@@ -214,111 +126,105 @@ except Exception as exc:
     console.exception(exc)
 ```
 
-For a full traceback:
+Use `traceback=True` for the full traceback.
 
-```python
-console.exception(
-    exc,
-    traceback=True,
-)
-```
+---
 
-## Terminal
-
-Clear the terminal:
+### Terminal
 
 ```python
 console.clear()
+
+print(console.width)
 ```
 
-Vanta handles Windows, Linux, and macOS automatically.
+Vanta works on Windows, Linux, and macOS.
 
-The detected terminal width is available through:
+Colors can also be controlled with `NO_COLOR` and `FORCE_COLOR`.
+
+## Methods
 
 ```python
-console.width
-```
+console.debug(...)
+console.info(...)
+console.notice(...)
+console.success(...)
+console.warning(...)
+console.error(...)
+console.critical(...)
 
-## Colors
-
-Colors are automatically detected.
-
-Disable them explicitly:
-
-```python
-console = vanta.Console(color=False)
-```
-
-Vanta also respects:
-
-```bash
-NO_COLOR=1 vanta
-```
-
-and:
-
-```bash
-FORCE_COLOR=1 vanta
-```
-
-## Non-Interactive Mode
-
-Vanta can be used without interactive input:
-
-```python
-console = vanta.Console(
-    interactive=False,
-)
-```
-
-This is useful for scripts, CI, and automated environments.
-
-## API
-
-### `Console`
-
-```python
-Console(
-    color: bool | None = None,
-    cls: bool = False,
-    *,
-    stream=None,
-    stdout=None,
-    stderr=None,
-    input_fn=input,
-    interactive: bool | None = None,
-    level: str = "info",
-)
-```
-
-### Messages
-
-```python
-console.debug(message)
-console.info(message)
-console.notice(message)
-console.success(message)
-console.warning(message)
-console.error(message)
-console.critical(message)
-```
-
-### Other
-
-```python
-console.raw(message, timestamp=True)
-console.clear()
-console.exception(exc, traceback=False, prefix=None)
+console.raw(...)
 console.ask(...)
 console.confirm(...)
+console.exception(...)
+console.clear(...)
 ```
 
-## Version
+# Tables
+```python
+table = vanta.Table(
+    "Name",        # Column 1
+    "Age",         # Column 2
+    "Status",      # Column 3
+    ...,
+    align="left",  # Align cell text to the left
+    border=True,   # Show table and cell borders
+    header=True,   # Include column headers
+)
+```
 
-> **0.2.0 - Console & CLI Improvements**
+## Options
 
-Vanta is currently in early development. The API may change before `1.0.0`.
+| Option   | Description                 |
+| -------- | --------------------------- |
+| `align`  | Align cell text             |
+| `border` | Show table and cell borders |
+| `header` | Include column headers      |
 
-## License
+`align` can be `left`, `center`, or `right`.
 
-See `LICENSE` for license information.
+---
+
+## Examples
+
+```python
+table = vanta.Table("Name", "Age", "Status")
+
+table.add_row("Alice", 17, "Online")
+table.add_row("Bob", 21, "Offline")
+
+table.print()
+```
+
+---
+
+Output:
+
+```text
+┌───────┬─────┬─────────┐
+│ Name  │ Age │ Status  │
+├───────┼─────┼─────────┤
+│ Alice │ 17  │ Online  │
+│ Bob   │ 21  │ Offline │
+└───────┴─────┴─────────┘
+```
+
+## Methods
+
+```python
+table.add_row(...)
+table.add_rows(...)
+table.clear()
+table.render()      # Returns the table as a string
+table.print()       # Renders and prints the table
+```
+
+# Version
+
+**0.3.0**
+
+Vanta is currently in early development and the API may change before `1.0.0`.
+
+# License
+
+See [`LICENSE`](LICENSE).
