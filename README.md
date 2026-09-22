@@ -208,6 +208,109 @@ table.render()      # Returns the table as a string
 table.print()       # Renders and prints the table
 ```
 
+# Progress
+
+```python
+progress = vanta.Progress(
+    100,
+    label="Downloading",
+    width=30,
+    interactive=True,
+)
+```
+
+`Progress` renders a single updating progress bar in the terminal.
+
+## Options
+
+| Option        | Description                        |
+| ------------- | ---------------------------------- |
+| `total`       | Total number of steps              |
+| `label`       | Text displayed before the bar      |
+| `width`       | Width of the progress bar          |
+| `interactive` | Enable/disable terminal rendering  |
+| `file`        | Output stream for the progress bar |
+
+## Examples
+
+### Basic
+
+```python
+import time
+import vanta
+
+progress = vanta.Progress(100, label="Downloading")
+
+while not progress.finished:
+    time.sleep(0.02)
+    progress.update()
+```
+
+Output:
+
+```text
+Downloading [██████████████████████████████] 100.00% (100/100) 2.0s
+```
+
+The progress bar updates in place rather than printing a new line for every update.
+
+### Custom Updates
+
+```python
+progress = vanta.Progress(100, label="Processing")
+
+while not progress.finished:
+    do_some_work()
+    progress.update(5)
+```
+
+Progress is automatically capped at `total`.
+
+### Context Manager
+
+```python
+with vanta.Progress(100, label="Downloading") as progress:
+    while not progress.finished:
+        do_some_work()
+        progress.update()
+```
+
+### Manual Finish
+
+```python
+progress = vanta.Progress(100, label="Working")
+
+progress.start()
+
+# Do some work...
+
+progress.finish()
+```
+
+## Properties
+
+| Property     | Description                               |
+| ------------ | ----------------------------------------- |
+| `total`      | Total number of steps                     |
+| `current`    | Current progress                          |
+| `percentage` | Progress as a percentage                  |
+| `remaining`  | Number of remaining steps                 |
+| `finished`   | Whether the progress has finished         |
+| `completed`  | Whether the total has been reached        |
+| `running`    | Whether the progress is currently running |
+| `elapsed`    | Elapsed time in seconds                   |
+
+## Methods
+
+```python
+progress.start()
+progress.update()
+progress.update(5)
+progress.finish()
+progress.reset()
+```
+
+
 # Timer
 ```python
 timer = vanta.Timer(
@@ -291,7 +394,7 @@ timer.reset() # Clears the timer and returns it to its initial state. Does not r
 
 # Version
 
-**0.3.1**
+**0.3.2**
 
 Vanta is currently in early development and the API may change before `1.0.0`.
 
