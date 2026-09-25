@@ -1382,3 +1382,557 @@ def test_stdout_and_stderr_can_be_configured_independently() -> None:
 
     assert "failure" in stderr.getvalue()
     assert "normal" not in stderr.getvalue()
+
+# ---------------------------------------------------------------------------
+# choose()
+# ---------------------------------------------------------------------------
+
+
+def test_choose_sequence_returns_selected_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: "2",
+    )
+
+    assert console.choose(
+        "Pick one:",
+        ["Apple", "Banana", "Orange"],
+    ) == "Banana"
+
+
+def test_choose_accepts_displayed_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: "banana",
+    )
+
+    assert console.choose(
+        "Pick one:",
+        ["Apple", "Banana", "Orange"],
+    ) == "Banana"
+
+
+def test_choose_is_case_insensitive(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: "BANANA",
+    )
+
+    assert console.choose(
+        "Pick one:",
+        ["Apple", "Banana", "Orange"],
+    ) == "Banana"
+
+
+def test_choose_mapping_accepts_custom_shortcut(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: "fb",
+    )
+
+    assert console.choose(
+        "Pick a sport:",
+        {
+            "hcky": "Ice Hockey",
+            "fb": "Football",
+            "vb": "Volleyball",
+        },
+    ) == "Football"
+
+
+def test_choose_mapping_accepts_displayed_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: "football",
+    )
+
+    assert console.choose(
+        "Pick a sport:",
+        {
+            "hcky": "Ice Hockey",
+            "fb": "Football",
+            "vb": "Volleyball",
+        },
+    ) == "Football"
+
+
+def test_choose_retries_invalid_input(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    answers = iter(["invalid", "2"])
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: next(answers),
+    )
+
+    assert console.choose(
+        "Pick one:",
+        ["Apple", "Banana"],
+    ) == "Banana"
+
+
+def test_choose_respects_retry_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: "invalid",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Maximum number of retries",
+    ):
+        console.choose(
+            "Pick one:",
+            ["Apple", "Banana"],
+            retry=1,
+        )
+
+
+def test_choose_retry_zero_allows_single_attempt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts = 0
+
+    def fake_input(_: str) -> str:
+        nonlocal attempts
+        attempts += 1
+        return "invalid"
+
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        fake_input,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Maximum number of retries",
+    ):
+        console.choose(
+            "Pick one:",
+            ["Apple", "Banana"],
+            retry=0,
+        )
+
+    assert attempts == 1
+
+
+def test_choose_prints_options_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stdout = FakeStream()
+
+    console = Console(
+        color=False,
+        cls=False,
+        stdout=stdout,
+    )
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: "1",
+    )
+
+    assert console.choose(
+        "Pick one:",
+        ["Apple", "Banana"],
+    ) == "Apple"
+
+    output = stdout.getvalue()
+
+    assert "[1] Apple" in output
+    assert "[2] Banana" in output
+
+
+def test_choose_non_interactive_raises() -> None:
+    console = Console(
+        color=False,
+        cls=False,
+        interactive=False,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Interactive input is unavailable",
+    ):
+        console.choose(
+            "Pick one:",
+            ["Apple", "Banana"],
+        )
+
+
+# ---------------------------------------------------------------------------
+# number()
+# ---------------------------------------------------------------------------
+
+
+def test_number_returns_integer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: "42",
+    )
+
+    assert console.number("Number:") == 42
+
+
+def test_number_accepts_minimum(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: "10",
+    )
+
+    assert console.number(
+        "Number:",
+        minimum=10,
+    ) == 10
+
+
+def test_number_accepts_maximum(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: "10",
+    )
+
+    assert console.number(
+        "Number:",
+        maximum=10,
+    ) == 10
+
+
+def test_number_rejects_value_below_minimum(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    answers = iter(["5", "10"])
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: next(answers),
+    )
+
+    assert console.number(
+        "Number:",
+        minimum=10,
+    ) == 10
+
+
+def test_number_rejects_value_above_maximum(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    answers = iter(["15", "10"])
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: next(answers),
+    )
+
+    assert console.number(
+        "Number:",
+        maximum=10,
+    ) == 10
+
+
+def test_number_rejects_invalid_input(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    answers = iter(["abc", "42"])
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: next(answers),
+    )
+
+    assert console.number("Number:") == 42
+
+
+def test_number_rejects_invalid_range() -> None:
+    console = Console(color=False, cls=False)
+
+    with pytest.raises(
+        ValueError,
+        match="minimum",
+    ):
+        console.number(
+            "Number:",
+            minimum=10,
+            maximum=5,
+        )
+
+
+def test_number_non_interactive_raises() -> None:
+    console = Console(
+        color=False,
+        cls=False,
+        interactive=False,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Interactive input is unavailable",
+    ):
+        console.number("Number:")
+
+
+# ---------------------------------------------------------------------------
+# password()
+# ---------------------------------------------------------------------------
+
+
+def test_password_uses_getpass(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    getpass = Mock(return_value="secret")
+
+    monkeypatch.setattr(
+        "getpass.getpass",
+        getpass,
+    )
+
+    assert console.password() == "secret"
+
+    getpass.assert_called_once_with("Password: ")
+
+
+def test_password_accepts_custom_question(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    getpass = Mock(return_value="secret")
+
+    monkeypatch.setattr(
+        "getpass.getpass",
+        getpass,
+    )
+
+    assert console.password("Enter password:") == "secret"
+
+    getpass.assert_called_once_with("Enter password: ")
+
+
+def test_password_uses_custom_input_function() -> None:
+    calls: list[str] = []
+
+    def fake_input(prompt: str) -> str:
+        calls.append(prompt)
+        return "secret"
+
+    console = Console(
+        color=False,
+        cls=False,
+        input_fn=fake_input,
+    )
+
+    assert console.password("Password:") == "secret"
+    assert calls == ["Password: "]
+
+
+def test_password_non_interactive_raises() -> None:
+    console = Console(
+        color=False,
+        cls=False,
+        interactive=False,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Interactive input is unavailable",
+    ):
+        console.password()
+
+
+# ---------------------------------------------------------------------------
+# path()
+# ---------------------------------------------------------------------------
+
+
+def test_path_returns_path_object(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: "/tmp/project",
+    )
+
+    result = console.path("Path:")
+
+    assert result == __import__("pathlib").Path("/tmp/project")
+
+
+def test_path_expands_home(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: "~/project",
+    )
+
+    result = console.path("Path:")
+
+    assert result == __import__("pathlib").Path("~/project").expanduser()
+
+
+def test_path_requires_existing_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    answers = iter([
+        str(tmp_path / "missing"),
+        str(tmp_path),
+    ])
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: next(answers),
+    )
+
+    assert console.path(
+        "Path:",
+        exists=True,
+    ) == tmp_path
+
+
+def test_path_requires_file(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    file = tmp_path / "test.txt"
+    file.write_text("hello")
+
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: str(file),
+    )
+
+    assert console.path(
+        "File:",
+        exists=True,
+        file=True,
+    ) == file
+
+
+def test_path_requires_directory(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    console = Console(color=False, cls=False)
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: str(tmp_path),
+    )
+
+    assert console.path(
+        "Directory:",
+        exists=True,
+        directory=True,
+    ) == tmp_path
+
+
+def test_path_rejects_file_and_directory_together() -> None:
+    console = Console(color=False, cls=False)
+
+    with pytest.raises(
+        ValueError,
+        match="file.*directory|directory.*file",
+    ):
+        console.path(
+            "Path:",
+            file=True,
+            directory=True,
+        )
+
+
+def test_path_retries_invalid_path(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    file = tmp_path / "test.txt"
+    file.write_text("hello")
+
+    console = Console(color=False, cls=False)
+
+    answers = iter([
+        str(tmp_path / "missing.txt"),
+        str(file),
+    ])
+
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda _: next(answers),
+    )
+
+    assert console.path(
+        "File:",
+        exists=True,
+        file=True,
+    ) == file
+
+
+def test_path_non_interactive_raises() -> None:
+    console = Console(
+        color=False,
+        cls=False,
+        interactive=False,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Interactive input is unavailable",
+    ):
+        console.path("Path:")
