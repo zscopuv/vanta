@@ -398,4 +398,4 @@ timer.reset()   # Clears the timer and returns it to its initial state. Does not
 
 # License
 
-See [`LICENSE`](LICENSE).
+See [`LICENSE`](https://github.com/zscopuv/vanta/tree/main?tab=License-1-ov-file).
