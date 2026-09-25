@@ -389,14 +389,12 @@ timer.start()
 timer.stop()
 timer.pause()
 timer.unpause()
-timer.reset() # Clears the timer and returns it to its initial state. Does not restart.
+timer.reset()   # Clears the timer and returns it to its initial state. Does not restart.
 ```
 
 # Version
 
 **0.3.2**
-
-Vanta is currently in early development and the API may change before `1.0.0`.
 
 # License
 
