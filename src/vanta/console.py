@@ -7,11 +7,12 @@ import sys
 import traceback as traceback_module
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Callable, Iterable, Literal, TextIO, TypeVar
+from pathlib import Path
+from typing import Callable, Iterable, Literal, Mapping, Sequence, TextIO, TypeVar
 
 from colorama import Fore, init
 
-from .metadata import __version__, __desc__
+from .metadata import __version__
 
 
 init(autoreset=True)
@@ -106,7 +107,6 @@ LOG_LEVELS: dict[str, int] = {
     "critical": 60,
 }
 
-
 class Console:
     """Small, configurable terminal console helper for Vanta."""
 
@@ -152,8 +152,7 @@ class Console:
                 Function used to read user input. Injectable for testing.
 
                 ``None`` means the builtin ``input`` is resolved at
-                call time, so replacements installed later (readline
-                wrappers, test doubles) are honored.
+                call time, so replacements installed later are honored.
 
             interactive:
                 Whether interactive input is available.
@@ -162,10 +161,6 @@ class Console:
 
             level:
                 Minimum message level to display.
-
-                Supported levels:
-                ``debug``, ``info``, ``notice``, ``success``,
-                ``warning``, ``error``, ``critical``.
         """
         if stream is not None:
             if stdout is not None:
@@ -224,20 +219,14 @@ class Console:
 
     def _should_color(self, color: bool | None) -> bool:
         """Determine whether ANSI colors should be emitted."""
-        # NO_COLOR convention:
-        # https://no-color.org/
         if "NO_COLOR" in os.environ:
             return False
 
-        # FORCE_COLOR is useful in CI/piped environments.
         if "FORCE_COLOR" in os.environ:
             return True
 
         if color is False:
             return False
-
-        if color is True:
-            return self._is_tty(self._stdout)
 
         return self._is_tty(self._stdout)
 
@@ -260,7 +249,9 @@ class Console:
     def width(self) -> int:
         """Return the current terminal width."""
         try:
-            return shutil.get_terminal_size(fallback=(80, 24)).columns
+            return shutil.get_terminal_size(
+                fallback=(80, 24)
+            ).columns
         except OSError:
             return 80
 
@@ -269,15 +260,10 @@ class Console:
     # ------------------------------------------------------------------
 
     def clear(self) -> None:
-        """Best-effort terminal clearing.
-
-        Failure to clear the terminal is intentionally non-fatal.
-        Clearing is only attempted when the console is interactive.
-        """
+        """Best-effort terminal clearing."""
         if not self._interactive:
             return
 
-        # Windows.
         if os.name == "nt":
             command = shutil.which("cls")
 
@@ -293,7 +279,6 @@ class Console:
                 except (OSError, subprocess.SubprocessError):
                     pass
 
-            # `cls` is normally a shell builtin.
             try:
                 subprocess.run(
                     ["cmd", "/c", "cls"],
@@ -306,7 +291,6 @@ class Console:
 
             return
 
-        # Unix-like systems.
         command = shutil.which("clear")
 
         if command:
@@ -321,7 +305,6 @@ class Console:
             except (OSError, subprocess.SubprocessError):
                 pass
 
-        # Last resort: ANSI.
         if self._color:
             try:
                 print(
@@ -340,9 +323,7 @@ class Console:
     # ------------------------------------------------------------------
     # Formatting
     # ------------------------------------------------------------------
-
     def _prefix(self, variant: str) -> str:
-        """Build a colored or plain message prefix."""
         variant = variant.lower()
 
         if variant not in VARIANTS:
@@ -360,7 +341,7 @@ class Console:
             f"{config.bracket}]"
             f"{config.text} "
         )
-
+    
     def _timestamp_text(self) -> str:
         """Build the timestamp portion of a message."""
         timestamp = f"[{self._timestamp()}]"
@@ -381,7 +362,10 @@ class Console:
 
     def _stream_for(self, variant: str) -> TextIO:
         """Return the output stream for a message variant."""
-        config = VARIANTS.get(variant.lower(), VARIANTS["info"])
+        config = VARIANTS.get(
+            variant.lower(),
+            VARIANTS["info"],
+        )
 
         if config.stream == "stderr":
             return self._stderr
@@ -417,10 +401,6 @@ class Console:
         try:
             print(output, file=stream)
         except (BrokenPipeError, OSError, ValueError):
-            # Useful for:
-            #
-            #     vanta | head
-            #
             return
 
     # ------------------------------------------------------------------
@@ -513,7 +493,10 @@ class Console:
         )
 
         try:
-            print(formatted.rstrip(), file=self._stderr)
+            print(
+                formatted.rstrip(),
+                file=self._stderr,
+            )
         except (BrokenPipeError, OSError, ValueError):
             return
 
@@ -555,19 +538,6 @@ class Console:
 
                 ``None`` means retry indefinitely.
                 ``0`` means one attempt only.
-
-        Raises:
-            ValueError:
-                If retry is negative or maximum attempts are exceeded.
-
-            RuntimeError:
-                If the console is non-interactive.
-
-            EOFError:
-                If stdin reaches EOF.
-
-            KeyboardInterrupt:
-                If the user interrupts input.
         """
         self._require_interactive()
         self._validate_retry(retry)
@@ -576,7 +546,9 @@ class Console:
 
         while True:
             try:
-                answer = self._input(f"{question} ").strip()
+                answer = self._input(
+                    f"{question} "
+                ).strip()
             except EOFError:
                 self.error("Input ended unexpectedly.")
                 raise
@@ -617,31 +589,7 @@ class Console:
         alias_yes: Iterable[str] | None = None,
         alias_no: Iterable[str] | None = None,
     ) -> bool:
-        """
-        Ask a yes/no question.
-
-        Args:
-            question:
-                Prompt shown to the user.
-
-            error_message:
-                Message shown for invalid input.
-
-            default:
-                Value returned when the user presses Enter.
-
-            retry:
-                Maximum number of retries after the initial attempt.
-
-                ``None`` means retry indefinitely.
-                ``0`` means one attempt only.
-
-            alias_yes:
-                Additional values accepted as yes.
-
-            alias_no:
-                Additional values accepted as no.
-        """
+        """Ask a yes/no question."""
         self._require_interactive()
         self._validate_retry(retry)
 
@@ -692,6 +640,225 @@ class Console:
                     f"({retry}) exceeded."
                 )
 
+    def choose(
+        self,
+        question: str,
+        options: Sequence[str] | Mapping[str, str],
+        *,
+        retry: int | None = None,
+        error_message: str | None = None,
+    ) -> str:
+        """
+        Display choices and return the selected value.
+
+        A sequence creates numbered choices::
+
+            [1] Development
+            [2] Staging
+            [3] Production
+
+        A mapping can be used for custom shortcuts::
+
+            {"r": "rock", "p": "paper", "s": "scissors"}
+
+        Both the shortcut and the displayed value are accepted
+        case-insensitively.
+        """
+        self._require_interactive()
+        self._validate_retry(retry)
+
+        if isinstance(options, Mapping):
+            choices = [
+                (str(shortcut), str(value))
+                for shortcut, value in options.items()
+            ]
+        else:
+            choices = [
+                (str(index), str(value))
+                for index, value in enumerate(options, 1)
+            ]
+
+        if not choices:
+            raise ValueError("choose() requires at least one option.")
+
+        shortcuts = {
+            shortcut.strip().lower(): value
+            for shortcut, value in choices
+        }
+
+        values = {
+            value.strip().lower(): value
+            for _, value in choices
+        }
+
+        for shortcut, value in choices:
+            self.raw(
+                f"[{shortcut}] {value}",
+                timestamp=False,
+            )
+
+        attempts = 0
+
+        while True:
+            try:
+                answer = self._input(
+                    f"{question} "
+                ).strip().lower()
+            except EOFError:
+                self.error("Input ended unexpectedly.")
+                raise
+            except KeyboardInterrupt:
+                self.raw("")
+                raise
+
+            if answer in shortcuts:
+                return shortcuts[answer]
+
+            if answer in values:
+                return values[answer]
+
+            attempts += 1
+
+            self.error(
+                error_message
+                if error_message is not None
+                else "Invalid choice."
+            )
+
+            if retry is not None and attempts > retry:
+                raise ValueError(
+                    f"Maximum number of retries "
+                    f"({retry}) exceeded."
+                )
+
+    def number(
+        self,
+        question: str,
+        minimum: int | None = None,
+        maximum: int | None = None,
+        *,
+        retry: int | None = None,
+    ) -> int:
+        """
+        Ask for an integer within an optional range.
+
+        Examples::
+
+            console.number("Port:")
+            console.number("Port:", 1, 65535)
+        """
+        if minimum is not None and maximum is not None and minimum > maximum:
+            raise ValueError(
+                "minimum cannot be greater than maximum."
+            )
+
+        def specific_number(value: str) -> int:
+            number = int(value)
+
+            if minimum is not None and number < minimum:
+                raise ValueError(
+                    f"Value must be at least {minimum}."
+                )
+
+            if maximum is not None and number > maximum:
+                raise ValueError(
+                    f"Value must be at most {maximum}."
+                )
+
+            return number
+
+        return self.ask(
+            question,
+            specific_number,
+            error_message=None,
+            retry=retry,
+        )
+
+    def password(
+        self,
+        question: str = "Password:",
+    ) -> str:
+        """
+        Ask for a password.
+
+        Password characters are hidden while typing.
+        """
+        self._require_interactive()
+
+        if self._input is not _read_input:
+            return self._input(
+                f"{question} "
+            )
+
+        try:
+            import getpass
+
+            return getpass.getpass(
+                f"{question} "
+            )
+        except (EOFError, KeyboardInterrupt):
+            self.raw("")
+            raise
+
+    def path(
+        self,
+        question: str,
+        *,
+        exists: bool = False,
+        file: bool = False,
+        directory: bool = False,
+        retry: int | None = None,
+    ) -> Path:
+        """
+        Ask for a filesystem path.
+
+        Args:
+            question:
+                Prompt shown to the user.
+
+            exists:
+                Require the path to exist.
+
+            file:
+                Require the path to be a regular file.
+
+            directory:
+                Require the path to be a directory.
+
+            retry:
+                Maximum number of retries after the initial attempt.
+        """
+        if file and directory:
+            raise ValueError(
+                "file and directory cannot both be True."
+            )
+
+        def valid_path(value: str) -> Path:
+            path = Path(value).expanduser()
+
+            if exists and not path.exists():
+                raise ValueError(
+                    f"Path does not exist: {path}"
+                )
+
+            if file and not path.is_file():
+                raise ValueError(
+                    f"Path is not a file: {path}"
+                )
+
+            if directory and not path.is_dir():
+                raise ValueError(
+                    f"Path is not a directory: {path}"
+                )
+
+            return path
+
+        return self.ask(
+            question,
+            valid_path,
+            retry=retry,
+        )
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
@@ -724,7 +891,9 @@ class Console:
             return
 
         if isinstance(retry, bool) or not isinstance(retry, int):
-            raise TypeError("retry must be an integer or None.")
+            raise TypeError(
+                "retry must be an integer or None."
+            )
 
         if retry < 0:
             raise ValueError("retry must be >= 0.")

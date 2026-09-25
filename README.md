@@ -37,51 +37,33 @@ table.print()
 ```
 
 # Console
+
 ```python
 console = vanta.Console(
     color=None,        # Auto-detect colors
-    cls=False,         # Don't clear the terminal on startup
+    cls=False,         # Don't clear terminal on startup
     *,
-    stdout=None,       # Output stream for normal messages
-    stderr=None,       # Output stream for warnings/errors
-    interactive=None,  # Auto-detect interactive mode
+    stdout=None,       # Normal output
+    stderr=None,       # Warnings/errors
+    input_fn=None,     # Custom input function
+    interactive=None, # Auto-detect interactive mode
     level="info",      # Minimum log level
 )
 ```
 
 ## Options
 
-| Option        | Description                       |
-| ------------- | --------------------------------- |
-| `color`       | Enable/disable colors             |
-| `cls`         | Clear terminal on startup         |
-| `stdout`      | Output stream for normal messages |
-| `stderr`      | Output stream for warnings/errors |
-| `interactive` | Enable/disable input              |
-| `level`       | Minimum log level                 |
+| Option        | Description                      |
+| ------------- | -------------------------------- |
+| `color`       | Enable/disable ANSI colors       |
+| `cls`         | Clear terminal on startup        |
+| `stdout`      | Normal output stream             |
+| `stderr`      | Warning/error output stream      |
+| `input_fn`    | Custom input function            |
+| `interactive` | Enable/disable interactive input |
+| `level`       | Minimum log level                |
 
-## Log Levels
-
-Vanta provides 7 log levels:
-
-| Level      | Value | Stream | Purpose                            |
-| ---------- | ----: | ------ | ---------------------------------- |
-| `debug`    |    10 | stdout | Detailed debugging information     |
-| `info`     |    20 | stdout | General information                |
-| `notice`   |    25 | stdout | Important information worth noting |
-| `success`  |    30 | stdout | Successful operation               |
-| `warning`  |    40 | stderr | Something may be wrong             |
-| `error`    |    50 | stderr | An operation failed                |
-| `critical` |    60 | stderr | Serious/critical failure           |
-
-> Lower levels are more verbose.
-
-- *`level="info"`* suppresses `debug` messages
-- *`level="warning"`* only emits `warning`, `error`, and `critical`
-
-## Examples
-
-### Logging
+## Logging
 
 ```python
 console.debug("Debug")
@@ -93,27 +75,76 @@ console.error("Error")
 console.critical("Critical")
 ```
 
-**Set a minimum log level:**
+Set the minimum log level:
 
 ```python
 console = vanta.Console(level="warning")
 ```
 
-For example, `level="warning"` only emits `warning`, `error`, and `critical` messages.
+`warning`, `error`, and `critical` are written to `stderr`.
 
-### Input
+## Input
 
 ```python
 name = console.ask("Name:")
-age = console.ask("Age:", int)
+age = console.number("Age:", 1, 120)
 
 if console.confirm("Continue?"):
-    print("Continuing!")
+    console.success("Continuing!")
 ```
 
 `ask()` supports custom converters and retries.
 
-### Exceptions
+### Choose
+
+```python
+sport = console.choose(
+    "Pick your sport.",
+    ["Ice Hockey", "Football", "Volleyball"],
+)
+```
+
+Choices are displayed with numbered shortcuts:
+
+```text
+[1] Ice Hockey
+[2] Football
+[3] Volleyball
+```
+
+Custom shortcuts are supported with mappings:
+
+```python
+sport = console.choose(
+    "Pick your sport.",
+    {
+        "hcky": "Ice Hockey",
+        "fb": "Football",
+        "vb": "Volleyball",
+    },
+)
+```
+
+### Password
+
+```python
+password = console.password("Password:")
+```
+
+Password input is hidden while typing.
+
+### Path
+
+```python
+path = console.path(
+    "Select a project directory:",
+    directory=True,
+)
+```
+
+`path()` returns a `pathlib.Path` and supports `exists`, `file`, `directory`, and `retry`.
+
+## Exceptions
 
 ```python
 try:
@@ -124,17 +155,16 @@ except Exception as exc:
 
 Use `traceback=True` for the full traceback.
 
-### Terminal
+## Terminal
 
 ```python
 console.clear()
-
 print(console.width)
 ```
 
 Vanta works on Windows, Linux, and macOS.
 
-Colors can also be controlled with `NO_COLOR` and `FORCE_COLOR`.
+Colors respect `NO_COLOR` and `FORCE_COLOR`.
 
 ## Methods
 
@@ -148,8 +178,14 @@ console.error(...)
 console.critical(...)
 
 console.raw(...)
+
 console.ask(...)
 console.confirm(...)
+console.choose(...)
+console.number(...)
+console.password(...)
+console.path(...)
+
 console.exception(...)
 console.clear(...)
 ```
@@ -521,7 +557,7 @@ timer.reset()   # Clears the timer and returns it to its initial state. Does not
 
 # Version
 
-**0.4.0**
+**0.5.0**
 
 # License
 
