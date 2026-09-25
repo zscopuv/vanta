@@ -14,6 +14,7 @@ A lightweight Python toolkit for clean, structured CLI output.
 - Simple terminal tables
 - Elapsed time measurement
 - Timer pause and resume
+- Simple terminal panels
 
 ## Installation
 
@@ -207,6 +208,132 @@ table.clear()
 table.render()      # Returns the table as a string
 table.print()       # Renders and prints the table
 ```
+# Panels
+```python
+panel = vanta.Panel(
+    "Hello",    # 1st line
+    "World",    # 2nd line
+    ...
+    title=None,
+    width=None,
+    padding=1,
+    border=True,
+)
+```
+`Panel` accepts one or more content values. Each value is rendered as a separate line.
+
+## Options
+
+| Option    | Description                                |
+| --------- | ------------------------------------------ |
+| `content` | One or more lines displayed in the panel   |
+| `title`   | Optional title displayed on the top edge   |
+| `width`   | Panel width; expands when content is wider |
+| `padding` | Horizontal content padding                 |
+| `border`  | Show or hide the panel border              |
+
+## Examples
+
+### Basic
+
+```python
+panel = vanta.Panel(
+    "Starting server...",
+    "Loading configuration...",
+    "Server ready.",
+    title="Status",
+)
+
+panel.print()
+```
+
+Output:
+
+```text
+╭───────── Status ──────────╮
+│ Starting server...        │
+│ Loading configuration...  │
+│ Server ready.             │
+╰───────────────────────────╯
+```
+
+### Custom Width
+
+```python
+panel = vanta.Panel(
+    "Hello, World!",
+    width=40,
+)
+
+panel.print()
+```
+
+The panel automatically expands if its content requires more space.
+
+### Padding
+
+```python
+panel = vanta.Panel(
+    "Hello, World!",
+    padding=2,
+)
+```
+
+### Without a Border
+
+```python
+panel = vanta.Panel(
+    "Hello, World!",
+    border=False,
+)
+
+panel.print()
+```
+
+Output:
+
+```text
+  Hello, World!
+```
+
+## Updating a Panel
+
+```python
+panel = vanta.Panel(
+    "Starting...",
+    title="Status",
+)
+
+panel.set_content("Finished!")
+panel.set_title("Complete")
+
+panel.print()
+```
+
+Both methods return the panel, so they can be chained:
+
+```python
+panel.set_title("Status").set_content("Ready")
+```
+
+## Properties
+
+```python
+panel.content
+panel.title
+panel.width
+panel.padding
+panel.border
+```
+
+## Methods
+
+```python
+panel.set_content(...)
+panel.set_title(...)
+panel.render()       # Returns the panel as a string
+panel.print()        # Renders and prints the panel
+```
 
 # Progress
 
@@ -394,7 +521,7 @@ timer.reset()   # Clears the timer and returns it to its initial state. Does not
 
 # Version
 
-**0.3.2**
+**0.4.0**
 
 # License
 

@@ -6,10 +6,12 @@ from .console import Console
 from .table import Table
 from .timer import Timer
 from .progress import Progress
+from .panel import Panel
 
 __all__ = [
     "Console",
     "Table",
     "Timer",
-    "Progress"
+    "Progress",
+    "Panel"
 ]
