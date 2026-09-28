@@ -555,9 +555,84 @@ timer.unpause()
 timer.reset()   # Clears the timer and returns it to its initial state. Does not restart.
 ```
 
+# Time
+
+```python
+time = vanta.Time("14:30:00")
+````
+
+`Time` provides a simple way to represent, parse, format, and compare times.
+
+## Examples
+
+### Basic
+
+```python
+time = vanta.Time("14:30:00")
+
+print(time)
+```
+
+Output:
+
+```text
+14:30:00
+```
+
+### Current Time
+
+```python
+time = vanta.Time.now()
+
+print(time)
+```
+
+### Custom Format
+
+```python
+time = vanta.Time("14:30")
+
+print(time.format("%H:%M"))
+```
+
+### Comparison
+
+```python
+start = vanta.Time("09:00:00")
+end = vanta.Time("17:00:00")
+
+print(start < end)
+print(start == end)
+```
+
+### Properties
+
+| Property | Description |
+| -------- | ----------- |
+| `hour`   | Hour        |
+| `minute` | Minute      |
+| `second` | Second      |
+
+### Methods
+
+```python
+time.format(...)
+time.replace(...)
+time.to_datetime(...)
+```
+
+### Class Methods
+
+```python
+vanta.Time.now()
+vanta.Time.from_datetime(...)
+```
+
+`Time` uses the `HH:MM:SS` format by default.
+
 # Version
 
-**0.5.0**
+**0.5.1**
 
 # License
 
