@@ -7,11 +7,13 @@ from .table import Table
 from .timer import Timer
 from .progress import Progress
 from .panel import Panel
+from .time import Time
 
 __all__ = [
     "Console",
     "Table",
     "Timer",
     "Progress",
-    "Panel"
+    "Panel",
+    "Time"
 ]
